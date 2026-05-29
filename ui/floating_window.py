@@ -1,5 +1,6 @@
 import ctypes
 import logging
+import sys
 from ctypes import wintypes
 from pathlib import Path
 
@@ -18,11 +19,19 @@ logger = logging.getLogger("DeepPenny.ui")
 WINDOW_WIDTH = 240
 WINDOW_HEIGHT = 50
 ERROR_MAX_LENGTH = 18
-STYLES_PATH = Path("resources/styles.qss")
-ICON_DIR = Path("resources/icons")
+ICON_SIZE = 16
+
+
+def _resource_path(relative: str) -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(sys._MEIPASS) / relative
+    return Path(relative)
+
+
+STYLES_PATH = _resource_path("resources/styles.qss")
+ICON_DIR = _resource_path("resources/icons")
 ICON_REFRESH = ICON_DIR / "redo.svg"
 ICON_SETTINGS = ICON_DIR / "setting-one.svg"
-ICON_SIZE = 16
 
 # --- Win32 API constants & helpers ---
 _HWND_TOPMOST = -1
