@@ -1,0 +1,81 @@
+#container {
+    background-color: rgba(0, 0, 0, 180);
+    border-radius: 6px;
+}
+
+#container[snapped="true"] {
+    background-color: rgba(0, 0, 0, 20);
+    border-radius: 0px;
+}
+
+#balanceLabel {
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: bold;
+    font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif;
+}
+
+#unitLabel {
+    color: rgba(255, 255, 255, 160);
+    font-size: 11px;
+    font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif;
+}
+
+#errorLabel {
+    color: #ff6b6b;
+    font-size: 11px;
+}
+
+#dragArea {
+    border-right: 1px solid transparent;
+}
+
+#dragArea[active="true"] {
+    border-right: 1px solid rgba(255, 255, 255, 60);
+}
+
+#dragHandle {
+    color: transparent;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+#dragHandle[active="true"] {
+    color: rgba(200, 200, 200, 120);
+}
+
+#dragHandle[active="true"]:hover {
+    color: #ffffff;
+}
+
+#closeBtn {
+    color: transparent;
+    font-size: 10px;
+    border: none;
+    padding: 0px;
+    background-color: transparent;
+}
+
+#closeBtn[active="true"] {
+    color: rgba(200, 200, 200, 120);
+}
+
+#closeBtn[active="true"]:hover {
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 30);
+    border-radius: 2px;
+}
+
+#actionBtn {
+    color: rgba(200, 200, 200, 180);
+    font-size: 14px;
+    border: none;
+    padding: 2px 4px;
+    background-color: transparent;
+    border-radius: 3px;
+}
+
+#actionBtn:hover {
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 40);
+}
