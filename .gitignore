@@ -22,3 +22,7 @@ Thumbs.db
 
 # Runtime
 logs/
+
+# Benchmark output
+benchmark_debug.log
+benchmark_report.txt

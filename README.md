@@ -1,17 +1,17 @@
 # DeepPenny — 实时显示 DeepSeek API 余额
 
-一个基于 PyQt6 的 Windows 桌面小工具，会在任务栏附近显示悬浮窗，定时刷新 DeepSeek API 账户余额，让你随时掌握账户消费状态。
+一个基于 PyQt6 的 Windows 桌面小工具，在任务栏附近显示悬浮窗，定时刷新 DeepSeek API 账户余额，让你随时掌握账户消费状态。
 
 ---
 
 ## 功能特性
 
-- 实时查询并显示 DeepSeek API 余额
-- 悬浮窗可吸附到任务栏，融入桌面不碍眼
-- 拖拽移动窗口，松开自动检测吸附
-- API Key 安全存储到系统凭据管理器（Windows 凭据管理器）
-- 可配置刷新间隔（10–3600 秒）
-- 完善的错误处理与自动重试
+- **实时余额展示** — 定时查询 DeepSeek API 余额并显示在悬浮窗上
+- **智能置顶** — 通过 Win32 `SetWinEventHook` + 200ms 定时器双重保障，悬浮窗始终保持在任务栏上方，即使点击「开始」菜单或「任务视图」也不会被遮挡
+- **吸附到任务栏** — 拖拽移动窗口，松开自动吸附到任务栏右边缘
+- **安全存储** — API Key 加密存储到 Windows 凭据管理器
+- **可配置刷新间隔** — 10–3600 秒可调
+- **错误处理** — 完善的异常捕获与自动重试
 
 ---
 
@@ -42,14 +42,16 @@
 #### 2. 安装依赖
 
 ```bash
-pip install -r requirements.txt
-```
-
-如果下载速度较慢，可以指定国内镜像：
-
-```bash
 pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
+
+或者直接运行一键安装脚本（推荐）：
+
+```bash
+install_deps.bat
+```
+
+脚本会自动检查已安装的包，跳过已安装的依赖，并从国内镜像下载缺失的包。
 
 #### 3. 运行程序
 
@@ -85,6 +87,62 @@ pytest tests/ -v
 
 ---
 
+## 技术实现
+
+### 窗口置顶机制
+
+悬浮窗使用双重置顶策略确保不会被任务栏覆盖：
+
+1. **200ms 精确定时器** — 定时调用 `SetWindowPos(HWND_TOPMOST)`，最快 200ms 内恢复置顶
+2. **WinEventHook 事件监听** — 注册 `EVENT_SYSTEM_FOREGROUND` 钩子，前台窗口切换时立即重新置顶
+
+通过 Z-order 验证日志（每 5 秒输出一次）可以确认 `WS_EX_TOPMOST` 标志始终为 `True`。
+
+### 性能基线
+
+| 指标 | 数值 |
+|:----|:----:|
+| CPU 增量 | < 0.5%（实测接近 0%） |
+| SetWindowPos 平均延迟 | ~50 µs |
+| 每秒总 CPU 开销 | ~0.3 ms |
+
+可通过以下命令在本地复现性能测试：
+
+```bash
+python benchmark_topmost.py
+```
+
+测试结果会输出到终端并保存到 `benchmark_report.txt`，DEBUG 级别的日志输出到 `benchmark_debug.log`。
+
+---
+
+## 项目结构
+
+```
+DeepPenny/
+├── main.py                      # 入口
+├── requirements.txt             # Python 依赖
+├── install_deps.bat             # 一键安装依赖（国内镜像）
+├── benchmark_topmost.py         # 置顶定时器性能测试
+├── secure_config.py             # 配置加密存储
+├── ui/
+│   ├── floating_window.py       # 悬浮窗主窗口 + Win32 置顶实现
+│   ├── settings_dialog.py       # 设置对话框
+│   └── snap_manager.py          # 吸附逻辑
+├── api/
+│   └── deepseek_api.py          # DeepSeek API 调用
+├── utils/
+│   ├── secure_storage.py        # API Key 安全存储
+│   └── logger.py                # 日志配置
+├── resources/
+│   ├── styles.qss               # QSS 样式表
+│   └── icons/                   # SVG 图标
+└── tests/
+    └── test_core.py             # 单元测试
+```
+
+---
+
 ## 如何获取 API Key
 
 1. 访问 [DeepSeek 开放平台](https://platform.deepseek.com/api_keys)
@@ -101,6 +159,7 @@ pytest tests/ -v
 | [PyQt6](https://pypi.org/project/PyQt6/) | 桌面 GUI 框架 |
 | [httpx](https://pypi.org/project/httpx/) | HTTP 客户端，调用 DeepSeek API |
 | [keyring](https://pypi.org/project/keyring/) | API Key 安全存储到系统凭据管理器 |
+| [psutil](https://pypi.org/project/psutil/) | 性能测试（仅 benchmark 需要） |
 
 ---
 

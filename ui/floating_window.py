@@ -1,4 +1,6 @@
+import ctypes
 import logging
+from ctypes import wintypes
 from pathlib import Path
 
 from PyQt6.QtWidgets import (
@@ -21,6 +23,51 @@ ICON_DIR = Path("resources/icons")
 ICON_REFRESH = ICON_DIR / "redo.svg"
 ICON_SETTINGS = ICON_DIR / "setting-one.svg"
 ICON_SIZE = 16
+
+# --- Win32 API constants & helpers ---
+_HWND_TOPMOST = -1
+_SWP_NOMOVE = 0x0002
+_SWP_NOSIZE = 0x0001
+_SWP_NOACTIVATE = 0x0010
+_WINEVENT_OUTOFCONTEXT = 0x0000
+_EVENT_SYSTEM_FOREGROUND = 0x0003
+
+_user32 = ctypes.windll.user32
+
+_WinEventProc = ctypes.WINFUNCTYPE(
+    None,
+    wintypes.HANDLE, wintypes.DWORD, wintypes.HWND,
+    wintypes.LONG, wintypes.LONG, wintypes.DWORD, wintypes.DWORD,
+)
+
+_user32.SetWinEventHook.argtypes = [
+    wintypes.UINT, wintypes.UINT, wintypes.HMODULE,
+    _WinEventProc, wintypes.DWORD, wintypes.DWORD, wintypes.DWORD,
+]
+_user32.SetWinEventHook.restype = wintypes.HANDLE
+
+_user32.UnhookWinEvent.argtypes = [wintypes.HANDLE]
+_user32.UnhookWinEvent.restype = wintypes.BOOL
+
+_user32.SetWindowPos.argtypes = [
+    wintypes.HWND, wintypes.HWND,
+    ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int,
+    wintypes.UINT,
+]
+_user32.SetWindowPos.restype = wintypes.BOOL
+
+_GWL_EXSTYLE = -20
+_WS_EX_TOPMOST = 0x00000008
+_GW_HWNDPREV = 3
+
+_user32.GetWindowLongW.argtypes = [wintypes.HWND, ctypes.c_int]
+_user32.GetWindowLongW.restype = wintypes.DWORD
+
+_user32.GetWindow.argtypes = [wintypes.HWND, wintypes.UINT]
+_user32.GetWindow.restype = wintypes.HWND
+
+_user32.GetClassNameW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
+_user32.GetClassNameW.restype = ctypes.c_int
 
 
 def _load_svg_icon(svg_path: Path, stroke_color: str) -> QIcon:
@@ -58,6 +105,8 @@ class FloatingWindow(QWidget):
         self._setup_ui()
         self._apply_styles()
         self._setup_timer()
+        self._install_foreground_hook()
+        self._setup_topmost_timer()
 
     def _setup_ui(self):
         self.container = QFrame(self)
@@ -279,3 +328,67 @@ class FloatingWindow(QWidget):
         self._timer.stop()
         self._timer.start(interval_seconds * 1000)
         logger.info("刷新间隔已更新为 %d 秒", interval_seconds)
+
+    # --- Win32 foreground hook + timer topmost ---
+
+    def _install_foreground_hook(self):
+        self._hwnd = int(self.winId())
+        self._topmost_log_count = 0
+
+        @_WinEventProc
+        def _on_foreground_change(hHook, event, hwnd_event, id_obj, id_child, dw_thread, dw_time):
+            _user32.SetWindowPos(
+                self._hwnd, _HWND_TOPMOST, 0, 0, 0, 0,
+                _SWP_NOMOVE | _SWP_NOSIZE | _SWP_NOACTIVATE,
+            )
+
+        self._foreground_callback = _on_foreground_change
+        self._foreground_hook = _user32.SetWinEventHook(
+            _EVENT_SYSTEM_FOREGROUND,
+            _EVENT_SYSTEM_FOREGROUND,
+            None, self._foreground_callback,
+            0, 0, _WINEVENT_OUTOFCONTEXT,
+        )
+        if self._foreground_hook:
+            logger.info("前台事件钩子安装成功 (hwnd=%d)", self._hwnd)
+        else:
+            logger.warning("前台事件钩子注册失败")
+
+    def _setup_topmost_timer(self):
+        self._topmost_timer = QTimer(self)
+        self._topmost_timer.timeout.connect(self._ensure_topmost)
+        self._topmost_timer.setTimerType(Qt.TimerType.PreciseTimer)
+        self._topmost_timer.start(200)
+        logger.info("置顶定时器已启动 (间隔=200ms)")
+
+    def _ensure_topmost(self):
+        _user32.SetWindowPos(
+            self._hwnd, _HWND_TOPMOST, 0, 0, 0, 0,
+            _SWP_NOMOVE | _SWP_NOSIZE | _SWP_NOACTIVATE,
+        )
+        self._topmost_log_count += 1
+
+        if self._topmost_log_count % 25 == 1:
+            ex_style = _user32.GetWindowLongW(self._hwnd, _GWL_EXSTYLE)
+            topmost_flag = (ex_style & _WS_EX_TOPMOST) != 0
+            prev_hwnd = _user32.GetWindow(self._hwnd, _GW_HWNDPREV)
+            buf = ctypes.create_unicode_buffer(64)
+            _user32.GetClassNameW(prev_hwnd, buf, 64)
+            logger.info(
+                "置顶验证: WS_EX_TOPMOST=%s  当前窗口下方: [hwnd=%d] %s   (累计置顶 %d 次)",
+                topmost_flag, prev_hwnd, buf.value, self._topmost_log_count,
+            )
+
+    def _uninstall_foreground_hook(self):
+        if self._topmost_timer and self._topmost_timer.isActive():
+            self._topmost_timer.stop()
+            logger.info("置顶定时器已停止 (累计执行 %d 次)", self._topmost_log_count)
+        if self._foreground_hook:
+            _user32.UnhookWinEvent(self._foreground_hook)
+            self._foreground_hook = None
+            logger.info("前台事件钩子已卸载")
+
+    def closeEvent(self, event):
+        logger.info("closeEvent 触发，开始清理资源")
+        self._uninstall_foreground_hook()
+        super().closeEvent(event)
