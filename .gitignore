@@ -13,6 +13,9 @@ config.json
 .vscode/
 .idea/
 
+# PyInstaller
+*.spec
+
 # OS
 Thumbs.db
 .DS_Store
