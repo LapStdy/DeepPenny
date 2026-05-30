@@ -2,7 +2,7 @@
 
 一个基于 PyQt6 的 Windows 桌面小工具，在任务栏附近显示悬浮窗，定时刷新 DeepSeek API 账户余额，让你随时掌握账户消费状态。
 
----
+***
 
 ## 功能特性
 
@@ -14,7 +14,7 @@
 - **可配置刷新间隔** — 10–3600 秒可调
 - **错误处理** — 完善的异常捕获与自动重试
 
----
+***
 
 ## 使用方法
 
@@ -29,7 +29,7 @@
 
 > 关闭浮窗（点击 `✕`）即可退出程序。API Key 会安全存储在 Windows 凭据管理器中，下次启动无需重新输入。
 
----
+***
 
 ### 方式二：使用 Python 运行（适合开发者）
 
@@ -68,11 +68,11 @@ python main.py
 pytest tests/ -v
 ```
 
----
+***
 
 ## 配置文件
 
-程序运行后会在根目录生成 `config.json`（已加入 `.gitignore`），结构如下：
+程序运行后会自动生成 `config.json` 文件（已加入 `.gitignore`，不会上传到 GitHub），你可以用记事本打开修改。文件内容如下：
 
 ```json
 {
@@ -82,13 +82,15 @@ pytest tests/ -v
 }
 ```
 
-| 字段 | 说明 | 默认值 |
-|---|---|---|
-| `api_key` | DeepSeek API Key（优先存入系统凭据管理器） | 空 |
-| `refresh_interval` | 余额刷新间隔（秒） | 60 |
-| `snap_offset` | 吸附时距任务栏右边缘的偏移量（像素） | 300 |
+各参数含义：
 
----
+| 参数 | 作用 | 默认值 |
+|---|---|---|
+| `api_key` | 你的 DeepSeek API 密钥（也支持存入 Windows 凭据管理器，更安全） | 空 |
+| `refresh_interval` | 每隔多少秒自动刷新一次余额 | 60 秒（即 1 分钟） |
+| `snap_offset` | 悬浮窗吸附到任务栏后，距离右边缘留多少像素空白。值越大，悬浮窗越靠左 | 300 |
+
+***
 
 ## 技术实现
 
@@ -101,13 +103,21 @@ pytest tests/ -v
 
 通过 Z-order 验证日志可以确认 `WS_EX_TOPMOST` 标志始终为 `True`。
 
+### 吸附机制
+
+1. **SnapZoneIndicator 状态分离** — 拖拽开始后目标区域立即显示实线边框（`SolidLine`）作为落点引导；分为 `inactive` 和 `active` 两种视觉状态
+   - `inactive`（未进入范围）：边框和背景几乎透明（alpha 10 / alpha 2），文字清晰可见
+   - `active`（进入范围）：边框和背景高亮（alpha 80 / alpha 20），反馈「到位了」
+2. **判定逻辑** — 通过 `screen.geometry()` 与 `screen.availableGeometry()` 的差值计算任务栏区域，再以 `_snap_threshold + 20` 像素的距离阈值判断悬浮窗底部是否接近任务栏顶部
+3. **吸附定位** — 吸附时悬浮窗固定在任务栏右边缘，偏移量由 `config.json` 的 `snap_offset` 控制（默认 300px），吸附后窗口背景透明化以融入任务栏
+
 ### 性能基线
 
-| 指标 | 数值 |
-|:----|:----:|
-| CPU 增量 | < 0.5%（实测接近 0%） |
-| SetWindowPos 平均延迟 | ~50 µs |
-| 每秒总 CPU 开销 | ~0.3 ms |
+| 指标                |        数值       |
+| :---------------- | :-------------: |
+| CPU 增量            | < 0.5%（实测接近 0%） |
+| SetWindowPos 平均延迟 |     \~50 µs     |
+| 每秒总 CPU 开销        |     \~0.3 ms    |
 
 可通过以下命令在本地复现性能测试：
 
@@ -117,7 +127,7 @@ python benchmark_topmost.py
 
 测试结果会输出到终端并保存到 `benchmark_report.txt`，DEBUG 级别的日志输出到 `benchmark_debug.log`。
 
----
+***
 
 ## 项目结构
 
@@ -146,7 +156,7 @@ DeepPenny/
     └── test_core.py             # 单元测试
 ```
 
----
+***
 
 ## 如何获取 API Key
 
@@ -155,26 +165,26 @@ DeepPenny/
 3. 复制生成的 Key（以 `sk-` 开头）
 4. 粘贴到程序的设置对话框中
 
----
+***
 
 ## 依赖项
 
 ### 必装组件（程序运行必需）
 
-| 包 | 用途 |
-|---|---|
-| [PyQt6](https://pypi.org/project/PyQt6/) | 桌面 GUI 框架 |
+| 包                                        | 用途                       |
+| ---------------------------------------- | ------------------------ |
+| [PyQt6](https://pypi.org/project/PyQt6/) | 桌面 GUI 框架                |
 | [httpx](https://pypi.org/project/httpx/) | HTTP 客户端，调用 DeepSeek API |
 
 ### 可选组件（按需安装）
 
-| 包 | 用途 | 安装后可用的功能 |
-|---|---|---|
-| [keyring](https://pypi.org/project/keyring/) | API Key 安全存储到系统凭据管理器 | 加密保存密钥，替代明文 config |
-| [pytest](https://pypi.org/project/pytest/) | Python 测试框架 | 运行 `pytest tests/ -v` |
-| [psutil](https://pypi.org/project/psutil/) | 系统资源监控 | 运行 `benchmark_topmost.py` |
+| 包                                            | 用途                   | 安装后可用的功能                  |
+| -------------------------------------------- | -------------------- | ------------------------- |
+| [keyring](https://pypi.org/project/keyring/) | API Key 安全存储到系统凭据管理器 | 加密保存密钥，替代明文 config        |
+| [pytest](https://pypi.org/project/pytest/)   | Python 测试框架          | 运行 `pytest tests/ -v`     |
+| [psutil](https://pypi.org/project/psutil/)   | 系统资源监控               | 运行 `benchmark_topmost.py` |
 
----
+***
 
 ## 许可证
 
