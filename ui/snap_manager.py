@@ -15,19 +15,37 @@ class SnapZoneIndicator(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
 
+        self._active = False
+
         self.label = QLabel("移动到此处固定", self)
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self._update_label_style()
+
+    def set_active(self, active: bool):
+        if self._active != active:
+            self._active = active
+            self._update_label_style()
+            self.update()
+
+    def _update_label_style(self):
         self.label.setStyleSheet("color: rgba(255, 255, 255, 180); font-size: 12px;")
 
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-        pen = QPen(QColor(255, 255, 255, 80))
-        pen.setStyle(Qt.PenStyle.DashLine)
+        if self._active:
+            pen = QPen(QColor(255, 255, 255, 80))
+            brush = QColor(255, 255, 255, 20)
+        else:
+            pen = QPen(QColor(255, 255, 255, 10))
+            brush = QColor(255, 255, 255, 2)
+
+        pen.setStyle(Qt.PenStyle.SolidLine)
         pen.setWidth(2)
         painter.setPen(pen)
-        painter.setBrush(QColor(255, 255, 255, 20))
+        painter.setBrush(brush)
         rect = self.rect().adjusted(2, 2, -2, -2)
         painter.drawRect(rect)
 
@@ -75,7 +93,11 @@ class SnapManager:
         return abs(window_bottom - taskbar_rect.top()) < self._snap_threshold + 20
 
     def on_drag_start(self):
-        pass
+        taskbar_rect = self._get_taskbar_rect()
+        if not taskbar_rect.isValid():
+            return
+        self._show_indicator(taskbar_rect)
+        self._indicator.set_active(False)
 
     def on_drag_move(self, global_pos):
         taskbar_rect = self._get_taskbar_rect()
@@ -83,10 +105,11 @@ class SnapManager:
             self._hide_indicator()
             return
 
-        if self._is_near_taskbar(global_pos):
+        if not self._indicator.isVisible():
             self._show_indicator(taskbar_rect)
-        else:
-            self._hide_indicator()
+            self._indicator.set_active(False)
+
+        self._indicator.set_active(self._is_near_taskbar(global_pos))
 
     def on_drag_end(self, global_pos):
         self._hide_indicator()
