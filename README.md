@@ -4,6 +4,16 @@
 
 ***
 
+## 效果预览
+
+| 桌面悬浮模式 | 吸附到任务栏 |
+|:---:|:---:|
+| ![桌面悬浮](screenshots/floating_window_desktop.png) | ![吸附任务栏](screenshots/floating_window_snapped.png) |
+
+*左：悬浮窗在桌面上的独立窗口效果；右：悬浮窗吸附到任务栏右侧，与任务栏融为一体*
+
+***
+
 ## 功能特性
 
 - **实时余额展示** — 定时查询 DeepSeek API 账户余额并显示在悬浮窗上
@@ -189,3 +199,9 @@ DeepPenny/
 ## 许可证
 
 本项目基于 MIT License 开源，详见 [LICENSE.txt](LICENSE.txt)。
+
+---
+
+## 更新日志
+
+各版本变更详情请查看 [CHANGELOG.md](CHANGELOG.md)。

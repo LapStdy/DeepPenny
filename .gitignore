@@ -26,3 +26,6 @@ logs/
 # Benchmark output
 benchmark_debug.log
 benchmark_report.txt
+
+# Root-level raw PNG originals (renamed copies in screenshots/ are tracked)
+/*.png
