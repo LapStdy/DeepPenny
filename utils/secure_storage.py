@@ -6,7 +6,7 @@ logger = logging.getLogger("DeepPenny.secure_storage")
 
 _SERVICE_NAME = "DeepPenny"
 _KEY_USERNAME = "api_key"
-_CONFIG_PATH = Path("config.json")
+_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.json"
 
 try:
     import keyring

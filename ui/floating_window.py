@@ -1,5 +1,6 @@
 import ctypes
 import logging
+import re
 import sys
 from ctypes import wintypes
 from pathlib import Path
@@ -81,7 +82,11 @@ _user32.GetClassNameW.restype = ctypes.c_int
 
 def _load_svg_icon(svg_path: Path, stroke_color: str) -> QIcon:
     svg_data = svg_path.read_text(encoding="utf-8")
-    svg_data = svg_data.replace('#333', stroke_color)
+    svg_data = re.sub(
+        r'(?:fill|stroke)\s*=\s*"#[0-9a-fA-F]{3,8}"',
+        lambda m: m.group(0).split('=')[0] + f'="{stroke_color}"',
+        svg_data,
+    )
     renderer = QSvgRenderer(QByteArray(svg_data.encode()))
     pixmap = QPixmap(ICON_SIZE, ICON_SIZE)
     pixmap.fill(Qt.GlobalColor.transparent)
@@ -366,9 +371,8 @@ class FloatingWindow(QWidget):
     def _setup_topmost_timer(self):
         self._topmost_timer = QTimer(self)
         self._topmost_timer.timeout.connect(self._ensure_topmost)
-        self._topmost_timer.setTimerType(Qt.TimerType.PreciseTimer)
-        self._topmost_timer.start(200)
-        logger.info("置顶定时器已启动 (间隔=200ms)")
+        self._topmost_timer.start(3000)
+        logger.info("置顶兜底定时器已启动 (间隔=3s，前景钩子为主力)")
 
     def _ensure_topmost(self):
         _user32.SetWindowPos(
@@ -377,13 +381,13 @@ class FloatingWindow(QWidget):
         )
         self._topmost_log_count += 1
 
-        if self._topmost_log_count % 25 == 1:
+        if self._topmost_log_count % 20 == 1:
             ex_style = _user32.GetWindowLongW(self._hwnd, _GWL_EXSTYLE)
             topmost_flag = (ex_style & _WS_EX_TOPMOST) != 0
             prev_hwnd = _user32.GetWindow(self._hwnd, _GW_HWNDPREV)
             buf = ctypes.create_unicode_buffer(64)
             _user32.GetClassNameW(prev_hwnd, buf, 64)
-            logger.info(
+            logger.debug(
                 "置顶验证: WS_EX_TOPMOST=%s  当前窗口下方: [hwnd=%d] %s   (累计置顶 %d 次)",
                 topmost_flag, prev_hwnd, buf.value, self._topmost_log_count,
             )

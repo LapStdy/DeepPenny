@@ -34,6 +34,8 @@ class DeepSeekAPI:
     def __init__(self, api_key: str = ""):
         self.api_key = api_key
         self._client = None
+        if api_key:
+            self._build_client()
 
     def set_api_key(self, api_key: str):
         validated = validate_api_key(api_key) if api_key else ""

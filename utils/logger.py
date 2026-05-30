@@ -12,6 +12,9 @@ def setup_logger(name: str = "DeepPenny") -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
 
+    if logger.handlers:
+        return logger
+
     formatter = logging.Formatter(
         "[%(asctime)s] %(levelname)-8s %(name)s | %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",

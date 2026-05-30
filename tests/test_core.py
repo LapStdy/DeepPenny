@@ -1,8 +1,9 @@
 import json
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
+import httpx
 import pytest
 
 from api.deepseek_api import (
@@ -238,13 +239,3 @@ class TestLogger:
         assert logger.level == logging.DEBUG
 
 
-try:
-    import httpx
-except ImportError:
-    httpx = None
-
-if not httpx:
-    class TestDeepSeekAPIBalanceParsing:
-        pass
-    class TestDeepSeekAPIManagement:
-        pass

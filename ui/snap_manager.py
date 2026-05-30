@@ -121,3 +121,8 @@ class SnapManager:
 
     def _hide_indicator(self):
         self._indicator.hide()
+
+    def cleanup(self):
+        self._indicator.hide()
+        self._indicator.deleteLater()
+        self._indicator = None

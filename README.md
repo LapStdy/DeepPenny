@@ -7,7 +7,7 @@
 ## 功能特性
 
 - **实时余额展示** — 定时查询 DeepSeek API 余额并显示在悬浮窗上
-- **智能置顶** — 通过 Win32 `SetWinEventHook` + 200ms 定时器双重保障，悬浮窗始终保持在任务栏上方，即使点击「开始」菜单或「任务视图」也不会被遮挡
+- **智能置顶** — 通过 Win32 `SetWinEventHook` 前台事件钩子为主力 + 3s 兜底定时器双重保障，悬浮窗始终保持在任务栏上方，即使点击「开始」菜单或「任务视图」也不会被遮挡
 - **吸附到任务栏** — 拖拽移动窗口，松开自动吸附到任务栏右边缘
 - **安全存储** — API Key 加密存储到 Windows 凭据管理器
 - **可配置刷新间隔** — 10–3600 秒可调
@@ -41,17 +41,19 @@
 
 #### 2. 安装依赖
 
-```bash
-pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
-```
-
-或者直接运行一键安装脚本（推荐）：
+直接运行一键安装脚本（推荐）：
 
 ```bash
 install_deps.bat
 ```
 
-脚本会自动检查已安装的包，跳过已安装的依赖，并从国内镜像下载缺失的包。
+脚本特性：
+
+- **必装组件** — PyQt6（GUI 框架）、httpx（HTTP 客户端），缺失时**自动安装**
+- **可选组件** — keyring（凭据存储）、pytest（测试框架）、psutil（性能测试），缺失时**逐一询问**是否安装
+- **多镜像源** — 预设清华、阿里云、中科大、豆瓣 4 个镜像源，按序尝试；连接超时（15 秒）自动切换；全部不可用时回退官方源
+- **自动验证** — 安装完毕自动验证所有组件能否正常导入
+- **自动清理** — 安装后清理 `pip` 缓存和临时文件
 
 #### 3. 运行程序
 
@@ -93,10 +95,10 @@ pytest tests/ -v
 
 悬浮窗使用双重置顶策略确保不会被任务栏覆盖：
 
-1. **200ms 精确定时器** — 定时调用 `SetWindowPos(HWND_TOPMOST)`，最快 200ms 内恢复置顶
-2. **WinEventHook 事件监听** — 注册 `EVENT_SYSTEM_FOREGROUND` 钩子，前台窗口切换时立即重新置顶
+1. **WinEventHook 事件监听（主力）** — 注册 `EVENT_SYSTEM_FOREGROUND` 钩子，前台窗口切换时立即置顶
+2. **3s 兜底定时器** — 每 3 秒调用一次 `SetWindowPos(HWND_TOPMOST)`，防止钩子遗漏的场景
 
-通过 Z-order 验证日志（每 5 秒输出一次）可以确认 `WS_EX_TOPMOST` 标志始终为 `True`。
+通过 Z-order 验证日志可以确认 `WS_EX_TOPMOST` 标志始终为 `True`。
 
 ### 性能基线
 
@@ -122,9 +124,8 @@ python benchmark_topmost.py
 DeepPenny/
 ├── main.py                      # 入口
 ├── requirements.txt             # Python 依赖
-├── install_deps.bat             # 一键安装依赖（国内镜像）
+├── install_deps.bat             # 一键依赖安装（多镜像源切换 + 必装/可选交互）
 ├── benchmark_topmost.py         # 置顶定时器性能测试
-├── secure_config.py             # 配置加密存储
 ├── ui/
 │   ├── floating_window.py       # 悬浮窗主窗口 + Win32 置顶实现
 │   ├── settings_dialog.py       # 设置对话框
@@ -154,12 +155,20 @@ DeepPenny/
 
 ## 依赖项
 
+### 必装组件（程序运行必需）
+
 | 包 | 用途 |
 |---|---|
 | [PyQt6](https://pypi.org/project/PyQt6/) | 桌面 GUI 框架 |
 | [httpx](https://pypi.org/project/httpx/) | HTTP 客户端，调用 DeepSeek API |
-| [keyring](https://pypi.org/project/keyring/) | API Key 安全存储到系统凭据管理器 |
-| [psutil](https://pypi.org/project/psutil/) | 性能测试（仅 benchmark 需要） |
+
+### 可选组件（按需安装）
+
+| 包 | 用途 | 安装后可用的功能 |
+|---|---|---|
+| [keyring](https://pypi.org/project/keyring/) | API Key 安全存储到系统凭据管理器 | 加密保存密钥，替代明文 config |
+| [pytest](https://pypi.org/project/pytest/) | Python 测试框架 | 运行 `pytest tests/ -v` |
+| [psutil](https://pypi.org/project/psutil/) | 系统资源监控 | 运行 `benchmark_topmost.py` |
 
 ---
 

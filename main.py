@@ -1,5 +1,6 @@
 import json
 import sys
+import tempfile
 from pathlib import Path
 
 from PyQt6.QtWidgets import QApplication
@@ -13,7 +14,7 @@ from utils.logger import setup_logger
 
 logger = setup_logger()
 
-CONFIG_PATH = Path("config.json")
+CONFIG_PATH = Path(__file__).resolve().parent / "config.json"
 
 
 def load_config() -> dict:
@@ -39,15 +40,24 @@ def load_config() -> dict:
 
 
 def save_config(config: dict):
-    if config.get("api_key"):
-        save_api_key(config["api_key"])
     safe_config = {k: v for k, v in config.items() if k != "api_key"}
     try:
-        with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-            json.dump(safe_config, f, ensure_ascii=False, indent=2)
+        tmp = tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", delete=False,
+            suffix=".tmp", prefix="config_",
+            dir=str(CONFIG_PATH.parent),
+        )
+        json.dump(safe_config, tmp, ensure_ascii=False, indent=2)
+        tmp.flush()
+        tmp_path = Path(tmp.name)
+        tmp.close()
+        tmp_path.replace(CONFIG_PATH)
         logger.debug("配置文件已保存")
     except OSError as e:
         logger.error("保存配置文件失败: %s", e)
+        return
+    if config.get("api_key"):
+        save_api_key(config["api_key"])
 
 
 def main():
