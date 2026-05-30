@@ -6,7 +6,8 @@
 
 ## 功能特性
 
-- **实时余额展示** — 定时查询 DeepSeek API 余额并显示在悬浮窗上
+- **实时余额展示** — 定时查询 DeepSeek API 账户余额并显示在悬浮窗上
+- **MiSans 字体渲染** — 内置小米 MiSans 字体，配合 `PreferNoHinting + PreferAntialias` 渲染策略，文字边缘平滑无像素感
 - **智能置顶** — 通过 Win32 `SetWinEventHook` 前台事件钩子为主力 + 3s 兜底定时器双重保障，悬浮窗始终保持在任务栏上方，即使点击「开始」菜单或「任务视图」也不会被遮挡
 - **吸附到任务栏** — 拖拽移动窗口，松开自动吸附到任务栏右边缘
 - **安全存储** — API Key 加密存储到 Windows 凭据管理器
@@ -126,6 +127,9 @@ DeepPenny/
 ├── requirements.txt             # Python 依赖
 ├── install_deps.bat             # 一键依赖安装（多镜像源切换 + 必装/可选交互）
 ├── benchmark_topmost.py         # 置顶定时器性能测试
+├── fonts/
+│   ├── MiSans-Regular.ttf       # 内置字体（小米 MiSans）
+│   └── MiSans-Bold.ttf
 ├── ui/
 │   ├── floating_window.py       # 悬浮窗主窗口 + Win32 置顶实现
 │   ├── settings_dialog.py       # 设置对话框

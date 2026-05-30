@@ -12,13 +12,13 @@
     color: #ffffff;
     font-size: 13px;
     font-weight: bold;
-    font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif;
+    font-family: "MiSans";
 }
 
 #unitLabel {
     color: rgba(255, 255, 255, 160);
     font-size: 11px;
-    font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif;
+    font-family: "MiSans";
 }
 
 #errorLabel {

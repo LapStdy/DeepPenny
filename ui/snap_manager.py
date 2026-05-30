@@ -43,7 +43,7 @@ class SnapManager:
         self._offset = offset
         self.is_snapped = False
         self._indicator = SnapZoneIndicator()
-        self._snap_threshold = 60
+        self._snap_threshold = 30
 
     def _get_taskbar_rect(self) -> QRect:
         screen = self.window.screen()

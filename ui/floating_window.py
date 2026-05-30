@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (
     QWidget, QFrame, QHBoxLayout, QLabel, QPushButton, QApplication
 )
 from PyQt6.QtCore import Qt, QTimer, QRect, QPoint, QEvent, QByteArray, QSize
-from PyQt6.QtGui import QPixmap, QPainter, QIcon, QFont
+from PyQt6.QtGui import QPixmap, QPainter, QIcon, QFont, QFontDatabase
 from PyQt6.QtSvg import QSvgRenderer
 
 from ui.settings_dialog import SettingsDialog
@@ -33,6 +33,29 @@ STYLES_PATH = _resource_path("resources/styles.qss")
 ICON_DIR = _resource_path("resources/icons")
 ICON_REFRESH = ICON_DIR / "redo.svg"
 ICON_SETTINGS = ICON_DIR / "setting-one.svg"
+
+FONTS_DIR = _resource_path("fonts")
+FONT_REGULAR = FONTS_DIR / "MiSans-Regular.ttf"
+FONT_BOLD = FONTS_DIR / "MiSans-Bold.ttf"
+
+
+def _load_custom_fonts():
+    font_ids = []
+    if FONT_REGULAR.exists():
+        fid = QFontDatabase.addApplicationFont(str(FONT_REGULAR))
+        if fid != -1:
+            font_ids.append(fid)
+            logger.info("已加载 MiSans-Regular 字体")
+        else:
+            logger.warning("MiSans-Regular 字体加载失败")
+    if FONT_BOLD.exists():
+        fid = QFontDatabase.addApplicationFont(str(FONT_BOLD))
+        if fid != -1:
+            font_ids.append(fid)
+            logger.info("已加载 MiSans-Bold 字体")
+        else:
+            logger.warning("MiSans-Bold 字体加载失败")
+    return font_ids
 
 # --- Win32 API constants & helpers ---
 _HWND_TOPMOST = -1
@@ -116,6 +139,7 @@ class FloatingWindow(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)
 
+        _load_custom_fonts()
         self._setup_ui()
         self._apply_styles()
         self._setup_timer()
@@ -150,14 +174,15 @@ class FloatingWindow(QWidget):
         self.drag_handle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         drag_layout.addWidget(self.drag_handle)
 
-        self.balance_label = QLabel("余额: --.--")
+        self.balance_label = QLabel("账户余额: --.--")
         self.balance_label.setObjectName("balanceLabel")
 
         self.unit_label = QLabel("元")
         self.unit_label.setObjectName("unitLabel")
 
-        aa_font = QFont()
+        aa_font = QFont("MiSans")
         aa_font.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
+        aa_font.setHintingPreference(QFont.HintingPreference.PreferNoHinting)
         self.balance_label.setFont(aa_font)
         self.unit_label.setFont(aa_font)
 
@@ -293,7 +318,7 @@ class FloatingWindow(QWidget):
 
     def refresh_balance(self):
         self.error_label.hide()
-        self.balance_label.setText("余额: --.--")
+        self.balance_label.setText("账户余额: --.--")
 
         if not self.api.api_key:
             self._show_error("请设置 API Key")
@@ -302,7 +327,7 @@ class FloatingWindow(QWidget):
         try:
             data = self.api.get_balance()
             balance = data.get("balance", 0)
-            self.balance_label.setText(f"余额: {balance:.2f}")
+            self.balance_label.setText(f"账户余额: {balance:.2f}")
             logger.info("余额刷新成功: %.2f 元", balance)
         except AuthError as e:
             logger.warning("认证失败: %s", e)
