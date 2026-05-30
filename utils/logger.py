@@ -2,7 +2,14 @@ import logging
 import sys
 from pathlib import Path
 
-_LOG_DIR = Path("logs")
+
+def _app_dir() -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).resolve().parent.parent
+
+
+_LOG_DIR = _app_dir() / "logs"
 _LOG_FILE = _LOG_DIR / "deep_penny.log"
 
 

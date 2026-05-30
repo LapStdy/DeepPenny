@@ -14,7 +14,14 @@ from utils.logger import setup_logger
 
 logger = setup_logger()
 
-CONFIG_PATH = Path(__file__).resolve().parent / "config.json"
+
+def _config_path() -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent / "config.json"
+    return Path(__file__).resolve().parent / "config.json"
+
+
+CONFIG_PATH = _config_path()
 
 
 def load_config() -> dict:
